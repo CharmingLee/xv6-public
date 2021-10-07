@@ -13,4 +13,6 @@ initcode.out
 kernel
 kernelmemfs
 mkfs
+core
 .gdbinit
+.vscode
