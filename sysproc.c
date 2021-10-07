@@ -89,3 +89,7 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int sys_count_traps(void) {
+  return count_traps();
+}
