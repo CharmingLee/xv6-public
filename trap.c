@@ -32,10 +32,28 @@ idtinit(void)
   lidt(idt, sizeof(idt));
 }
 
+struct proc_trap {
+  int pid;
+  int trap_handler[T_DEFAULT];
+};
+
+static struct proc_trap pts[NPROC];
+
+void update_count_traps (struct trapframe *tf) {
+  struct proc *curproc = myproc();
+  pts[curproc->pid].pid = curproc->pid;
+  pts[curproc->pid].trap_handler[tf->trapno]++;
+}
+
 //PAGEBREAK: 41
 void
 trap(struct trapframe *tf)
 {
+  if (myproc())
+  {
+    update_count_traps(tf);
+  }
+  
   if(tf->trapno == T_SYSCALL){
     if(myproc()->killed)
       exit();
@@ -112,6 +130,29 @@ trap(struct trapframe *tf)
 }
 
 int count_traps(void) {
-  cprintf("==== count_traps ====\n");
+  int flag[NPROC];
+  for (int i = 0; i < NPROC; i++) {
+    if (!pts[i].pid) {
+      continue;
+    }
+
+    flag[i] = 0;
+    for (int j = 0; j < T_DEFAULT; j++) {
+        if (!pts[i].trap_handler[j]) {
+          continue;
+        }
+
+        if (!flag[i]) {
+            cprintf("pid %d:\n", pts[i].pid);
+        }
+          
+          flag[i] += pts[i].trap_handler[j];
+          cprintf(" trapno:%d count:%d\n", j, pts[i].trap_handler[j]);
+      }
+
+      if (flag[i]) {
+        cprintf(" trapped_count:%d:\n", flag[i]);
+      }
+  }
   return 22;
 }
