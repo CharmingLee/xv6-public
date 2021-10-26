@@ -16,3 +16,4 @@ mkfs
 .gdbinit
 .idea/
 .vscode/
+core
