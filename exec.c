@@ -100,7 +100,10 @@ exec(char *path, char **argv)
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
   switchuvm(curproc);
+  shp_release(curproc->pgdir, curproc->shpbounds, curproc->shpkeymark);
   freevm(oldpgdir);
+  curproc->shpbounds = KERNBASE;
+  curproc->shpkeymark = 0;
   return 0;
 
  bad:

@@ -6,6 +6,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "spinlock.h"
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
@@ -32,7 +33,7 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-static pte_t *
+pte_t *
 walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
   pde_t *pde;
@@ -57,7 +58,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
-static int
+int
 mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 {
   char *a, *last;
@@ -223,8 +224,8 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
   char *mem;
   uint a;
-
-  if(newsz >= KERNBASE)
+  struct proc *p = myproc();
+  if(newsz >= p->shpbounds)
     return 0;
   if(newsz < oldsz)
     return oldsz;
@@ -287,7 +288,9 @@ freevm(pde_t *pgdir)
 
   if(pgdir == 0)
     panic("freevm: no pgdir");
-  deallocuvm(pgdir, KERNBASE, 0);
+  struct proc *p = myproc();
+  deallocuvm(pgdir, p->shpbounds, 0);
+  // deallocuvm(pgdir, KERNBASE, 0);
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
       char * v = P2V(PTE_ADDR(pgdir[i]));
@@ -392,3 +395,218 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 //PAGEBREAK!
 // Blank page.
 
+struct sharepages
+{
+    int refcount;
+    int page_num;
+    void *physaddr[MAX_SHP_PAGE_NUM];
+};
+struct spinlock shplock;
+struct sharepages shptab[MAX_SHP_TAB_NUM];
+
+void shp_init()
+{
+    initlock(&shplock, "share memory lock");
+    for (int i = 0; i < MAX_SHP_TAB_NUM; i++)
+    {
+        shptab[i].refcount = 0;
+    }
+    cprintf("share memory init finished.\n");
+}
+
+void shp_add_count(uint shpkeymask)
+{
+    acquire(&shplock);
+    for (int i = 0; i < MAX_SHP_TAB_NUM; i++)
+    {
+        if (shp_key_used(i, shpkeymask))
+        {
+            shptab[i].refcount++;
+        }
+    }
+
+    release(&shplock);
+}
+
+int shp_key_used(uint key, uint mark)
+{
+    if (key < 0 || MAX_SHP_TAB_NUM <= key)
+        return 0;
+
+    return (mark >> key) & 0x1;
+}
+
+int shp_deallovm(pde_t *pgdir, uint oldshp, uint newshp)
+{
+    pte_t *pte;
+    uint a, pa;
+
+    if (newshp <= oldshp)
+        return oldshp;
+
+    a = PGROUNDDOWN(newshp - PGSIZE);
+    for (; oldshp <= a; a -= PGSIZE)
+    {
+        pte = walkpgdir(pgdir, (char *)a, 0);
+        if (pte && (*pte & PTE_P) != 0)
+        {
+            pa = PTE_ADDR(*pte);
+            if (pa == 0)
+                panic("kfree");
+            *pte = 0;
+        }
+    }
+    return newshp;
+}
+
+int shp_alloc(pde_t *pgdir, uint oldshp, uint newshp, uint sz, void *phyaddr[MAX_SHP_PAGE_NUM])
+{
+    if (oldshp & 0xFFF || newshp & 0xFFF || oldshp > KERNBASE || newshp < sz)
+    {
+        return 0;
+    }
+
+    char *mem;
+    uint a;
+    a = newshp;
+    for (int i = 0; a < oldshp; a +=PGSIZE, i++)
+    {
+        mem = kalloc();
+        if (mem == 0)
+        {
+            shp_deallovm(pgdir, newshp, oldshp);
+            return 0;
+        }
+        memset(mem, 0, PGSIZE);
+        mappages(pgdir, (char *)a, PGSIZE, (uint)V2P(mem), PTE_W | PTE_U);
+        phyaddr[i] = (void *)V2P(mem);
+    }
+
+    return newshp;
+}
+
+int shp_map(pde_t *pgdir, uint oldshp, uint newshp, uint sz, void **physaddr)
+{
+    if (oldshp & 0xFFF || newshp & 0xFFF || oldshp > KERNBASE || newshp < sz)
+    {
+        return 0;
+    }
+    uint a;
+    a = newshp;
+    for (int i = 0; a < oldshp; a += PGSIZE, i++)
+    {
+        mappages(pgdir, (char *)a, PGSIZE, (uint)physaddr[i], PTE_W | PTE_U);
+    }
+
+    return newshp;
+}
+
+int shp_add(uint key, uint pagenum, void *physaddr[MAX_SHP_PAGE_NUM])
+{
+    if (key < 0 || MAX_SHP_TAB_NUM <= key || pagenum < 0 || MAX_SHP_PAGE_NUM < pagenum)
+        return -1;
+
+    shptab[key].refcount = 1;
+    shptab[key].page_num = pagenum;
+    for (int i = 0; i < pagenum; i++)
+    {
+        shptab[key].physaddr[i] = physaddr[i];
+    }
+
+    return 0;
+}
+
+int shp_release(pde_t *pgdir, uint shp, uint keymark)
+{
+    acquire(&shplock);
+    shp_deallovm(pgdir, shp, KERNBASE);
+    for (int i = 0; i < MAX_SHP_TAB_NUM; i++)
+    {
+        if (shp_key_used(i, keymark))
+        {
+            shptab[i].refcount--;
+            if (!shptab[i].refcount)
+            {
+                free_shared_page(i);
+            }
+        }
+    }
+
+    release(&shplock);
+    return 0;
+}
+
+void* get_shared_page(int key, int num)
+{
+    if (key < 0 || MAX_SHP_TAB_NUM <= key || num < 0 || MAX_SHP_PAGE_NUM < num)
+        return 0;
+
+    pde_t *pgdir;
+    void *phyaddr[MAX_SHP_TAB_NUM];
+    uint shp = 0;
+    acquire(&shplock);
+    struct proc *p = myproc();
+    pgdir = p->pgdir;
+    shp = p->shpbounds;
+
+    // 当前进程已经映射共享内存，直接返回
+    if (p->shpkeymark >> key & 0x1)
+    {
+        release(&shplock);
+        return p->shpva[key];
+    }
+
+    if (!shptab[key].refcount)
+    {
+        //系统还未创建这个key对应的共享内存，分配共享内存并映射
+        shp = shp_alloc(pgdir, shp, shp - num * PGSIZE, p->sz, phyaddr);
+        if (shp == 0)
+        {
+            release(&shplock);
+            return (void*)-1;
+        }
+        p->shpva[key] = (void *)shp;
+        shp_add(key, num, phyaddr);
+    }
+    else
+    {
+        //系统已经创建这个key的共享内存，则直接映射
+        for (int i = 0; i < num; i++)
+        {
+            phyaddr[i] = shptab[key].physaddr[i];
+        }
+
+        num = shptab[key].page_num;
+        shp = shp_map(pgdir, shp, shp - num * PGSIZE, p->sz, phyaddr);
+        if (shp == 0)
+        {
+            release(&shplock);
+            return (void*)-1;
+        }
+
+        p->shpva[key] = (void *)shp;
+        shptab[key].refcount++;
+    }
+
+    p->shpbounds = shp;
+    p->shpkeymark |= 1 << key;
+    release(&shplock);
+    return (void*)shp;
+}
+
+int free_shared_page(int key)
+{
+    if (key < 0 || MAX_SHP_TAB_NUM <= key)
+    {
+        return -1;
+    }
+
+    struct sharepages *shp = &shptab[key];
+    for (int i = 0; i < (int)shp->physaddr[i]; i++)
+    {
+        kfree((char *)P2V(shp->physaddr[i]));
+    }
+    
+    shp->refcount = 0;
+    return 0;
+}

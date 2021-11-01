@@ -49,6 +49,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  uint shpbounds;               // Share memory boundary
+  uint shpkeymark;              // Share memory key mark
+  void* shpva[MAX_SHP_TAB_NUM]; // Share memory virtual address
 };
 
 // Process memory is laid out contiguously, low addresses first:

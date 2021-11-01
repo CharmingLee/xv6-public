@@ -184,7 +184,16 @@ pde_t*          copyuvm(pde_t*, uint);
 void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
-void            clearpteu(pde_t *pgdir, char *uva);
+void            clearpteu(pde_t *, char *);
+int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
+pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc);
+struct sharepages;
+void* get_shared_page(int, int);
+int free_shared_page(int);
+void shp_init();
+void shp_add_count(uint);
+int shp_key_used(uint, uint);
+int shp_release(pde_t *, uint, uint);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

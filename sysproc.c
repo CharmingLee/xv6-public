@@ -89,3 +89,23 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int sys_get_shared_page (void) {
+  int key, num_pages;
+  if(argint(0, &key) < 0)
+    return -1;
+  
+  argint(1, &num_pages);
+  if(num_pages < 0 || num_pages > MAX_SHP_PAGE_NUM)
+    return -1;
+
+  return (int)get_shared_page(key, num_pages);
+}
+
+int sys_free_shared_page (void) {
+  int key;
+  if(argint(0, &key) < 0)
+    return -1;
+  
+  return free_shared_page(key);
+}

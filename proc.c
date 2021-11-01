@@ -88,6 +88,9 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  //init share mem
+  p->shpkeymark = 0;
+  p->shpbounds = KERNBASE;
 
   release(&ptable.lock);
 
@@ -196,6 +199,14 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+
+  shp_add_count(curproc->shpbounds);
+  np->shpbounds = curproc->shpbounds;
+  for (int i = 0; i < MAX_SHP_TAB_NUM; i++) {
+      if (shp_key_used(i, np->shpbounds)) {
+          np->shpva[i] = curproc->shpva[i];
+      }
+  }
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
@@ -289,6 +300,9 @@ wait(void)
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
+        shp_release(p->pgdir, p->shpbounds, p->shpkeymark);
+        p->shpbounds = KERNBASE;
+        p->shpkeymark = 0;
         freevm(p->pgdir);
         p->pid = 0;
         p->parent = 0;
