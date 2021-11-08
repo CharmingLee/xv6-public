@@ -522,7 +522,7 @@ int shp_release(pde_t *pgdir, uint shp, uint keymark)
     shp_deallovm(pgdir, shp, KERNBASE);
     for (int i = 0; i < MAX_SHP_TAB_NUM; i++)
     {
-        if (shp_key_used(i, keymark))
+        if (shp_key_used(i, keymark) && shptab[i].refcount > 0)
         {
             shptab[i].refcount--;
             if (!shptab[i].refcount)
