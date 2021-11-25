@@ -750,6 +750,10 @@ fileDirWalker(char *path, int indent)
       ilock(dp);
     }
     break;
+  case T_DEV:
+    printIndent(indent);
+    cprintf("dev:%s dev:%d inum:%d type:%d size:%d\n", path, dp->dev, dp->inum, dp->type, dp->size);
+    break;
   
   default:
     break;
@@ -775,6 +779,6 @@ fileiTBWalker()
     brelse(bp);
   }
 
-  return 1;
+  return 0;
 }
 
