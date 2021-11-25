@@ -442,3 +442,15 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+int sys_fileDirWalker(void)
+{
+  char *p;
+  int indent;
+  if (argstr(0, &p) < 0 || argint(1, &indent))
+  {
+    return -1;
+  }
+  
+  return fileDirWalker(p, indent);
+}

@@ -660,6 +660,7 @@ struct inode*
 namei(char *path)
 {
   char name[DIRSIZ];
+  memset(&name, 0, sizeof(char)*DIRSIZ);
   return namex(path, 0, name);
 }
 
@@ -667,4 +668,94 @@ struct inode*
 nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
+}
+
+/**
+ * hw4
+ * group 2
+ */
+char*
+fmtname(char *path)
+{
+  static char buf[DIRSIZ+1];
+  char *p;
+
+  // Find first character after last slash.
+  for(p=path+strlen(path); p >= path && *p != '/'; p--)
+    ;
+  p++;
+
+  // Return blank-padded name.
+  if(strlen(p) >= DIRSIZ)
+    return p;
+  memmove(buf, p, strlen(p));
+  memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
+  return buf;
+}
+
+void 
+strcat(char *det, char *src) 
+{
+  int j = strlen(det);
+  for (int i = 0; i < strlen(src); ++i, j++) {
+      det[j] = src[i];
+  }
+}
+
+void 
+printIndent(int indent) {
+	for (int i = 0; i < indent; i++)
+		cprintf(" ");
+  cprintf("|");
+}
+
+int 
+fileDirWalker(char *path, int indent)
+{
+  // cprintf("fileDirWalker path:%s indent:%d\n", path, indent);
+  struct inode *dp = namei(path);
+  if (dp == 0)
+  {
+    cprintf("inode not exiet\n");
+    return -1;
+  }
+
+  struct dirent dirEnt;
+  ilock(dp);
+  switch (dp->type)
+  {
+  case T_FILE:
+    printIndent(indent);
+    cprintf("file:%s dev:%d inum:%d type:%d size:%d\n", path, dp->dev, dp->inum, dp->type, dp->size);
+    break;
+  case T_DIR:
+    printIndent(indent);
+    cprintf("dir:%s dev:%d inum:%d type:%d size:%d\n", path, dp->dev, dp->inum, dp->type, dp->size);
+    indent++;
+    int off = 0;
+    while (off < dp->size && readi(dp, (char*)&dirEnt, off, sizeof(dirEnt)) == sizeof(dirEnt))
+    {
+      off += sizeof(dirEnt);
+      if (dirEnt.inum < 1 || namecmp(dirEnt.name, ".") == 0 || namecmp(dirEnt.name, "..") == 0)
+        continue;
+
+      char dest[DIRSIZ];
+      memset(&dest, 0, sizeof(char)*DIRSIZ);
+      if (namecmp(path, "/") != 0)
+        strcat(dest, path);
+      strcat(dest, "/");
+      strcat(dest, dirEnt.name);
+
+      iunlock(dp);
+      fileDirWalker(dest, indent);
+      ilock(dp);
+    }
+    break;
+  
+  default:
+    break;
+  }
+
+  iunlock(dp);
+  return 0;
 }
