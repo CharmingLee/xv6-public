@@ -454,3 +454,8 @@ int sys_fileDirWalker(void)
   
   return fileDirWalker(p, indent);
 }
+
+int sys_fileiTBWalker(void)
+{
+  return fileiTBWalker();
+}

@@ -712,11 +712,10 @@ printIndent(int indent) {
 int 
 fileDirWalker(char *path, int indent)
 {
-  // cprintf("fileDirWalker path:%s indent:%d\n", path, indent);
   struct inode *dp = namei(path);
   if (dp == 0)
   {
-    cprintf("inode not exiet\n");
+    cprintf("path %s inode not exiet\n", path);
     return -1;
   }
 
@@ -759,3 +758,23 @@ fileDirWalker(char *path, int indent)
   iunlock(dp);
   return 0;
 }
+
+int 
+fileiTBWalker()
+{
+  int inum;
+  struct buf *bp;
+  struct dinode *dip;
+
+  for(inum = 1; inum < sb.ninodes; inum++){
+    bp = bread(T_DEV, IBLOCK(inum, sb));
+    dip = (struct dinode*)bp->data + inum%IPB;
+    if(dip->type != 0){  // a not free inode
+      cprintf("inode %d is used\n", inum);
+    }
+    brelse(bp);
+  }
+
+  return 1;
+}
+
