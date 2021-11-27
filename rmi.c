@@ -18,7 +18,7 @@ main(int argc, char *argv[])
 
     char savePath[DIRSIZ];
     memset(&savePath, 0, sizeof(savePath));
-    strcat(savePath, "/temp/");
+    strcat(savePath, "/recycle/");
     strcat(savePath, argv[i]);
     int fd = open(savePath, O_CREATE|O_RDWR);
     write(fd, addrs, sizeof addrs);

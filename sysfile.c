@@ -478,13 +478,11 @@ int sys_recoverb()
   uint blockno;
   char *buf;
   uint size;
-  cprintf("sys_recoverb 1\n");
   if (argint(0, (int *)&dev) < 0 || argint(1, (int *)&blockno) < 0 
   || argstr(2, &buf) < 0 || argint(3, (int *)&size) < 0)
   {
     return -1;
   }
 
-  cprintf("sys_recoverb 2\n");
   return recoverb(dev, blockno, buf, size);
 }
