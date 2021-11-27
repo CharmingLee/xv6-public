@@ -54,6 +54,8 @@ void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, char*, uint, uint);
 int             fileDirWalker(char *path, int indent);
 int             fileiTBWalker();
+int             getinode(char *filepath, uint *addrs);
+int             recoverb(uint dev, uint blockno, char *buf, uint size);
 
 // ide.c
 void            ideinit(void);
@@ -149,6 +151,7 @@ char*           safestrcpy(char*, const char*, int);
 int             strlen(const char*);
 int             strncmp(const char*, const char*, uint);
 char*           strncpy(char*, const char*, int);
+void            strcat(char *det, char *src);
 
 // syscall.c
 int             argint(int, int*);

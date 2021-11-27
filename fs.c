@@ -694,15 +694,6 @@ fmtname(char *path)
 }
 
 void 
-strcat(char *det, char *src) 
-{
-  int j = strlen(det);
-  for (int i = 0; i < strlen(src); ++i, j++) {
-      det[j] = src[i];
-  }
-}
-
-void 
 printIndent(int indent) {
 	for (int i = 0; i < indent; i++)
 		cprintf(" ");
@@ -782,3 +773,36 @@ fileiTBWalker()
   return 0;
 }
 
+int
+getinode(char *filepath, uint *addrs)
+{
+  begin_op();
+  struct inode *ip = namei(filepath);
+  if (!ip || ip->inum < 1)
+  {
+    return -1;
+  }
+  ilock(ip);
+  for (int i = 0; i < NDIRECT+1; i++)
+  {
+    addrs[i] = ip->addrs[i];
+    cprintf("write:%d\n", addrs[i]);
+  }
+  addrs[NDIRECT + 1] = ip->size;
+  cprintf("write size:%d\n", addrs[NDIRECT + 1]);
+
+  iunlock(ip);
+  end_op();
+  return 0;
+}
+
+int
+recoverb(uint dev, uint blockno, char *buf, uint size)
+{
+  cprintf("enter blockno:%d\n", blockno);
+  struct buf *b = bread(dev, blockno);
+  cprintf("recoverb:%s\n", b->data);
+  memmove(buf, b->data, size);
+  brelse(b);
+  return 0;
+}

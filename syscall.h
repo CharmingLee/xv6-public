@@ -22,3 +22,5 @@
 #define SYS_close  21
 #define SYS_fileDirWalker  22
 #define SYS_fileiTBWalker  23
+#define SYS_getinode  24
+#define SYS_recoverb  25

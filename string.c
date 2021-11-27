@@ -103,3 +103,11 @@ strlen(const char *s)
   return n;
 }
 
+void 
+strcat(char *det, char *src) 
+{
+  int j = strlen(det);
+  for (int i = 0; i < strlen(src); ++i, j++) {
+      det[j] = src[i];
+  }
+}

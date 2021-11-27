@@ -25,6 +25,8 @@ int sleep(int);
 int uptime(void);
 int fileDirWalker(char *, int);
 int fileiTBWalker();
+int getinode(char *filepath, uint *addrs);
+int recoverb(uint dev, uint blockno, char *buf, uint size);
 
 // ulib.c
 int stat(const char*, struct stat*);
@@ -39,3 +41,4 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+void strcat(char *det, char *src);

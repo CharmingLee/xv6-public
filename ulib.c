@@ -104,3 +104,12 @@ memmove(void *vdst, const void *vsrc, int n)
     *dst++ = *src++;
   return vdst;
 }
+
+void 
+strcat(char *det, char *src) 
+{
+  int j = strlen(det);
+  for (int i = 0; i < strlen(src); ++i, j++) {
+      det[j] = src[i];
+  }
+}
