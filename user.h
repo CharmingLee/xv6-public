@@ -27,6 +27,7 @@ int fileDirWalker(char *, int);
 int fileiTBWalker();
 int getinode(char *filepath, uint *addrs);
 int recoverb(uint dev, uint blockno, char *buf, uint size);
+int compareWalker(char *, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

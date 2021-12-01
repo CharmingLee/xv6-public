@@ -24,3 +24,4 @@
 #define SYS_fileiTBWalker  23
 #define SYS_getinode  24
 #define SYS_recoverb  25
+#define SYS_compareWalker  26

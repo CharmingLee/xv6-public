@@ -21,7 +21,8 @@ main(int argc, char *argv[])
         if (fd < 1)
         {
             printf(1, "path:%s not exist\n", filePath);
-            continue;
+            exit();
+            return -1;
         }
         
         uint addrs[NDIRECT + 2];
@@ -37,7 +38,7 @@ main(int argc, char *argv[])
         if (fd < 1)
         {
             printf(2, "path:%s not exist\n", savePath);
-            continue;
+            return -1;
         }
 
         char buf[BSIZE];

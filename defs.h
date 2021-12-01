@@ -56,7 +56,7 @@ int             fileDirWalker(char *path, int indent);
 int             fileiTBWalker();
 int             getinode(char *filepath, uint *addrs);
 int             recoverb(uint dev, uint blockno, char *buf, uint size);
-
+int             compareWalker(char *path, int indent);
 // ide.c
 void            ideinit(void);
 void            ideintr(void);

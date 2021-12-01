@@ -706,7 +706,7 @@ fileDirWalker(char *path, int indent)
   struct inode *dp = namei(path);
   if (dp == 0)
   {
-    cprintf("path %s inode not exiet\n", path);
+    cprintf("1111 path %s inode not exiet\n", path);
     return -1;
   }
 
@@ -800,5 +800,81 @@ recoverb(uint dev, uint blockno, char *buf, uint size)
   struct buf *b = bread(dev, blockno);
   memmove(buf, b->data, size);
   brelse(b);
+  return 0;
+}
+
+int 
+compareWalker(char *path, int indent)
+{
+  // int inum;
+  struct buf *bp;
+  struct dinode *dip;
+
+  struct inode *dp = namei(path);
+  if (dp == 0)
+  {
+    cprintf("path %s inode not exiet\n", path);
+    return -1;
+  }
+
+  struct dirent dirEnt;
+  ilock(dp);
+  switch (dp->type)
+  {
+  case T_FILE:
+    printIndent(indent);
+    cprintf("【dirWalker】=> file:%s inode:%d  == ", path, dp->inum);
+    bp = bread(T_DEV, IBLOCK(dp->inum, sb));
+    dip = (struct dinode*)bp->data + dp->inum%IPB;
+    if(dip->type != 0){  // a not free inode
+      cprintf("【TBWalker】=> inode:%d\n", dp->inum);
+    }
+    brelse(bp);
+    break;
+  case T_DIR:
+    printIndent(indent);
+    cprintf("【dirWalker】=> dir:%s inode:%d == ", path, dp->inum);
+    bp = bread(T_DEV, IBLOCK(dp->inum, sb));
+    dip = (struct dinode*)bp->data + dp->inum%IPB;
+    if(dip->type != 0){  // a not free inode
+      cprintf("【TBWalker】=> inode:%d\n", dp->inum);
+    }
+    brelse(bp);
+    indent++;
+    int off = 0;
+    while (off < dp->size && readi(dp, (char*)&dirEnt, off, sizeof(dirEnt)) == sizeof(dirEnt))
+    {
+      off += sizeof(dirEnt);
+      if (dirEnt.inum < 1 || namecmp(dirEnt.name, ".") == 0 || namecmp(dirEnt.name, "..") == 0)
+        continue;
+
+      char dest[DIRSIZ];
+      memset(&dest, 0, sizeof(char)*DIRSIZ);
+      if (namecmp(path, "/") != 0)
+        strcat(dest, path);
+      strcat(dest, "/");
+      strcat(dest, dirEnt.name);
+
+      iunlock(dp);
+      compareWalker(dest, indent);
+      ilock(dp);
+    }
+    break;
+  case T_DEV:
+    printIndent(indent);
+    cprintf("【dirWalker】=> dev:%s inode:%d == ", path, dp->inum);
+    bp = bread(T_DEV, IBLOCK(dp->inum, sb));
+    dip = (struct dinode*)bp->data + dp->inum%IPB;
+    if(dip->type != 0){  // a not free inode
+      cprintf("【TBWalker】=> inode:%d\n", dp->inum);
+    }
+    brelse(bp);
+    break;
+  
+  default:
+    break;
+  }
+
+  iunlock(dp);
   return 0;
 }
