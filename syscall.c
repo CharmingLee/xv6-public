@@ -107,6 +107,7 @@ extern int sys_fileDirWalker(void);
 extern int sys_fileiTBWalker(void);
 extern int sys_getinode(void);
 extern int sys_recoverb(void);
+extern int sys_compareWalker(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -134,6 +135,7 @@ static int (*syscalls[])(void) = {
 [SYS_fileiTBWalker]   sys_fileiTBWalker,
 [SYS_getinode]   sys_getinode,
 [SYS_recoverb]   sys_recoverb,
+[SYS_compareWalker]   sys_compareWalker,
 };
 
 void

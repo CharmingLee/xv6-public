@@ -21,8 +21,8 @@ main(int argc, char *argv[])
         if (fd < 1)
         {
             printf(1, "path:%s not exist\n", filePath);
-            continue;
-        }
+            continue;	
+	}
         
         uint addrs[NDIRECT + 2];
         memset(&addrs, 0, sizeof(addrs));

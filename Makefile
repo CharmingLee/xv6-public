@@ -185,6 +185,7 @@ UPROGS=\
 	_inodeTBWalker\
 	_rmi\
 	_rvi\
+	_compareWalker\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

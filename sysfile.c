@@ -486,3 +486,15 @@ int sys_recoverb()
 
   return recoverb(dev, blockno, buf, size);
 }
+
+int sys_compareWalker(void)
+{
+  char *p;
+  int indent;
+  if (argstr(0, &p) < 0 || argint(1, &indent))
+  {
+    return -1;
+  }
+  
+  return compareWalker(p, indent);
+}
