@@ -706,7 +706,7 @@ fileDirWalker(char *path, int indent)
   struct inode *dp = namei(path);
   if (dp == 0)
   {
-    cprintf("1111 path %s inode not exiet\n", path);
+    cprintf("path %s inode not exiet\n", path);
     return -1;
   }
 
@@ -878,3 +878,4 @@ compareWalker(char *path, int indent)
   iunlock(dp);
   return 0;
 }
+
