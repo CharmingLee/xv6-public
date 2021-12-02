@@ -12,6 +12,7 @@ main(int argc, char *argv[])
     exit();
   }
 
+  mkdir("/recycle");
   for(int i = 1; i < argc; i++){
     uint addrs[NDIRECT+2];
     getinode(argv[i], addrs);

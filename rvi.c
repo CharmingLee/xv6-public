@@ -12,6 +12,7 @@ main(int argc, char *argv[])
         exit();
     }
 
+    mkdir("/recover");
     for(int i = 1; i < argc; i++){
         char filePath[DIRSIZ];
         memset(&filePath, 0, sizeof(filePath));
